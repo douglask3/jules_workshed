@@ -1,16 +1,21 @@
+######################################################################
+## cfg																##
+######################################################################
+## required libs
 library(raster)
 library(ncdf4)
 library(gitBasedProjects)
 setupProjectStructure()
 sourceAllLibs()
 
+## File list
 inputs_dir = '../LimFIRE/data/hyde_land/'
 inputs_fid = 'popd'
 outputs_eg = 'data/jules_eg_input/PD_2013.nc'
 
-remove_mask = TRUE
-
+## Parameters
 years = 2000:2014
+remove_mask = TRUE
 
 
 comment = list('data description' = 'HYDE3.2 regridded for JULES input.',
@@ -23,18 +28,26 @@ comment = list('data description' = 'HYDE3.2 regridded for JULES input.',
 			   'repo URL'         = gitRemoteURL(),
 			   'revision number'  = gitVersionNumber())			   
 
+######################################################################
+## setup    														##
+######################################################################
+## open example data
 example = raster(outputs_eg)
 example_clean = example
 
+## Make a version with corrected coordinates
 extent(example_clean) = extent(c(0, 360, -90, 90))
 example_clean = convert_pacific_centric_2_regular(example_clean)
 
-
+## Listing input files
 input_files = list.files(inputs_dir, full.names = TRUE, recursive = TRUE)
 input_files = input_files[grepl(inputs_fid, input_files)]
 
 yr = years[1]
 
+######################################################################
+## make new inputs													##
+######################################################################
 makePopDenYear <- function(yr) {
 	
 	## make a copy of example input file
@@ -64,6 +77,5 @@ makePopDenYear <- function(yr) {
 		addComments2nc(nc, comments)
 	nc_close(nc)
 }
-
 
 lapply(years, makePopDenYear)
