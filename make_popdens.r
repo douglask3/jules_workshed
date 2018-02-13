@@ -10,11 +10,11 @@ sourceAllLibs()
 
 ## File list
 inputs_dir = '../LimFIRE/data/hyde_land/'
-inputs_fid = 'popd'
+inputs_fid = 'popd_'
 outputs_eg = 'data/jules_eg_input/PD_2013.nc'
 
 ## Parameters
-years = 2000:2016
+years = 1998:2016
 remove_mask = TRUE
 
 
@@ -39,9 +39,17 @@ example_clean = example
 extent(example_clean) = extent(c(0, 360, -90, 90))
 example_clean = convert_pacific_centric_2_regular(example_clean)
 
+strsplitbyN <- function(X, i, ...) 
+	sapply(X, function(x) strsplit(x, ...)[[1]][i])
+
 ## Listing input files
 input_files = list.files(inputs_dir, full.names = TRUE, recursive = TRUE)
 input_files = input_files[grepl(inputs_fid, input_files)]
+input_years = strsplitbyN(input_files, 2, inputs_fid)
+input_years = as.numeric(strsplitbyN(input_years, 1, 'AD.asc'  ))
+c(input_years, index) := sort.int(input_years, index.return=TRUE)
+input_files = input_files[index]
+
 
 yr = years[1]
 
@@ -51,18 +59,31 @@ yr = years[1]
 makePopDenYear <- function(yr) {
 	
 	## make a copy of example input file
-	output_file =  paste(outputs_dir, 'PD_', yr, '.nc', sep = "")
+	output_file =  paste(outputs_dir, 'PD_HYDEv3.2', yr, '.nc', sep = "")
 	file.copy(outputs_eg, output_file, overwrite = TRUE)
 	
 	## Open hyde data
-	file    =  input_files[grepl(yr, input_files)]
-	print(file)
-	data    = raster(file)
+	
+	index = which(yr == input_years)
+	if (length(index) == 0) {
+		diff = input_years - yr
+		index = which.min(abs(diff))
+		if (diff[index] > 0) index = c(index - 1, index)
+			else index = c(index, index + 1)
+		diff = abs(diff[index])
+	}
+	file    =  input_files[index]
+	cat("====\n", "year:", yr, "\n")
+	cat("files:\n", paste("\t", file, "\n"))
+	data    = stack(file)
 	
 	if (remove_mask) data[is.na(data)] = 0.0
 	
 	## Resample to example grod
 	data_rg = raster::resample(data, example_clean)
+	if (nlayers(data_rg) > 1) 
+		data_rg = sum((data_rg * 1/diff)) / sum(1/diff)
+	
 	data_rg = convert_regular_2_pacific_centric(data_rg)
 	nrows = nrow(data_rg)
 	
