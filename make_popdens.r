@@ -14,7 +14,7 @@ inputs_fid = 'popd'
 outputs_eg = 'data/jules_eg_input/PD_2013.nc'
 
 ## Parameters
-years = 2000:2014
+years = 2000:2016
 remove_mask = TRUE
 
 
