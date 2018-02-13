@@ -2,6 +2,7 @@ library(raster)
 library(ncdf4)
 library(gitBasedProjects)
 setupProjectStructure()
+sourceAllLibs()
 
 inputs_dir = '../LimFIRE/data/hyde_land/'
 inputs_fid = 'popd'
@@ -20,46 +21,7 @@ comment = list('data description' = 'HYDE3.2 regridded for JULES input.',
                'data variable'    = 'population density',
 			   'data units'       = '(inhabitants/km2)',
 			   'repo URL'         = gitRemoteURL(),
-			   'revision number'  = gitVersionNumber())
-			   
-
-convert_regular_2_pacific_centric <- function(dat, tempWrite = FALSE) {
-	library(rasterExtras)
-    if (xmax(dat) > 180) return(dat)
-
-    index = 1:length(values(dat[[1]]))
-
-    xyz = cbind(xyFromCell(dat,index), values(dat))
-    x = xyz[, 1]
-	
-    test = x <0
-	
-    x[test] = x[test] + 360
-
-    xyz[,1] = x
-    dat = rasterFromXYZ(xyz, crs = projection(dat))
-    if (tempWrite) dat = writeRaster(dat, file = memSafeFile())
-    return(dat)
-}
-
-convert_pacific_centric_2_regular <- function(dat, tempWrite = FALSE) {
-    if (xmax(dat) < 180) return(dat)
-
-    index = 1:length(values(dat[[1]]))
-
-    xyz = cbind(xyFromCell(dat,index), values(dat))
-    x = xyz[, 1]
-    test = x > 180
-
-    x[test] = x[test] - 360
-
-    xyz[,1] = x
-    dat = rasterFromXYZ(xyz, crs = projection(dat))
-    if (tempWrite) dat = writeRaster(dat, file = memSafeFile())
-    return(dat)
-}
-
-			   
+			   'revision number'  = gitVersionNumber())			   
 
 example = raster(outputs_eg)
 example_clean = example
@@ -67,14 +29,6 @@ example_clean = example
 extent(example_clean) = extent(c(0, 360, -90, 90))
 example_clean = convert_pacific_centric_2_regular(example_clean)
 
-
-
-addComments2nc <- function(nc, comments) {
-	attPutStandard <- function(name, val)
-			ncatt_put(nc, 0, name, val)
-			
-	mapply(attPutStandard, names(comment), comment)
-}
 
 input_files = list.files(inputs_dir, full.names = TRUE, recursive = TRUE)
 input_files = input_files[grepl(inputs_fid, input_files)]
