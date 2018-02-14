@@ -12,6 +12,7 @@ sourceAllLibs()
 inputs_dir = '../LimFIRE/data/hyde_land/'
 inputs_fid = 'popd_'
 outputs_eg = 'data/jules_eg_input/PD_2013.nc'
+outputs_fn = 'PD_HYDEv3.2_'
 
 ## Parameters
 years = 1850:2016
@@ -26,6 +27,7 @@ comment = list('data description' = 'HYDE3.2 regridded for JULES input.',
                'data variable'    = 'population density',
 			   'data units'       = '(inhabitants/km2)',
 			   'repo URL'         = gitRemoteURL(),
+			   'file'             = 'make_popdens.r',
 			   'revision number'  = gitVersionNumber())			   
 
 ######################################################################
@@ -39,8 +41,6 @@ example_clean = example
 extent(example_clean) = extent(c(0, 360, -90, 90))
 example_clean = convert_pacific_centric_2_regular(example_clean)
 
-strsplitbyN <- function(X, i, ...) 
-	sapply(X, function(x) strsplit(x, ...)[[1]][i])
 
 ## Listing input files
 input_files = list.files(inputs_dir, full.names = TRUE, recursive = TRUE)
@@ -59,11 +59,10 @@ yr = years[1]
 makePopDenYear <- function(yr) {
 	
 	## make a copy of example input file
-	output_file =  paste(outputs_dir, 'PD_HYDEv3.2', yr, '.nc', sep = "")
+	output_file =  paste(outputs_dir, outputs_fn, yr, '.nc', sep = "")
 	file.copy(outputs_eg, output_file, overwrite = TRUE)
 	
 	## Open hyde data
-	
 	index = which(yr == input_years)
 	if (length(index) == 0) {
 		diff = input_years - yr
