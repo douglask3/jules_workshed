@@ -28,6 +28,12 @@ scaling_in =
 scaling_in0 = c(Tbe = Tree, tbe = Tree, bd = Tree, ne = Tree, nd = Tree, c3 = grass, c4 = grass, es = shrub, ds = shrub)
 scaling_odr = c(Tbe = 1   , tbe = 1   , bd = 2   , ne = 2   , nd = 3   , c3 = 6    , c4 = 7    , es = 4    , ds = 5    )
 
+lims0 = c(0.01, 0.02, 0.05, 0.10, 0.2, 0.4, 0.6, 0.8)
+cols0 = c("#EEEEEE", '#FF9900', '#990000', '#110000')
+
+dlims = c(-0.2, -0.1, -0.05, -0.02, -0.01, 0.01, 0.02, 0.05, 0.1, 0.2)
+dcols = c('#000011', '#000099', '#0099FF', '#EEEEEE', '#FF9900', '#990000', '#110000')
+
 pft_order  = c(1:6, 9, 12:13)
 
 ###########################
@@ -42,7 +48,8 @@ mod0 = convert_pacific_centric_2_regular(mod0)
 obs  = obs0 = mean(brick(obsfFile))
 obs  = raster::resample(obs, mod)
 
-fpc  = layer.apply(pft_order, function(i) brick(obsvFile, level = i))
+#fpc = layer.apply(pft_order, function(i) brick(obsvFile, level = i))
+fpc  = layer.apply(1:9, function(i) sum(brick(modvFile, level = i)[[modLayers]]))
 fpc  = convert_pacific_centric_2_regular(fpc)
 fpc  = raster::resample(fpc, mod[[1]])
 
@@ -83,35 +90,43 @@ parameterOrder <- function(FUN, params, order, ...) {
 	return(FUN(params, ...))
 }
 	
-fit = nls(vobs ~ parameterOrder(makeFire, c(Tbe, tbe, bd, ne, nd, c3, c4, es, ds), scaling_odr, vmod, vfpc),
-		  start  = as.list(scaling_in), trace = TRUE, algorithm = "port", 
-		  lower = rep(0, length(scaling_in)), upper = rep(10, length(scaling_in)))
+mod = sum(mod)
+
+mod1 <- function() {
+	fit = nls(vobs ~ parameterOrder(makeFire, c(Tbe, tbe, bd, ne, nd, c3, c4, es, ds), scaling_odr, vmod, vfpc),
+			  start  = as.list(scaling_in), trace = TRUE, algorithm = "port", 
+			  lower = rep(0, length(scaling_in)), upper = rep(10, length(scaling_in)))
+			  
+	mod[mask] = predict(fit)
+	return(mod)
+}
 		  
 
+mod2 <- function() {
+	fit = nls(vobs ~ makeFire(c(Tree, Tree, Tree, Tree, Tree, c3, c4, shrub, shrub), vmod, vfpc),
+			  start  = list(Tree = Tree, c3 = grass, c4 = grass, shrub = shrub), trace = TRUE, algorithm = "port", 
+			  lower = rep(0.0, 4), upper = rep(10, 4))
+		
+	params = summary(fit)$coefficients
+	pval = params[,4]
+	params = params[,1]
+	params[pval > 0.05] = veg_in[pval > 0.05]
+	Tree = params[1]; grass = params[2]; shrub = params[3]
+	grass = grass
+	mod[mask] = makeFire(c(Tree, Tree, Tree, Tree, Tree, grass, grass, shrub, shrub), vmod, vfpc)
+	return(mod)
+}	
 
-fit = nls(vobs ~ makeFire(c(Tree, Tree, Tree, Tree, Tree, grass, grass, shrub, shrub), vmod, vfpc),
-		  start  = list(Tree = Tree, grass = grass, shrub = shrub), trace = TRUE, algorithm = "port", 
-		  lower = rep(0.0, 3), upper = rep(10, 3))
-		  
-		  
-#fit = nls(vobs ~ makeFire(vmod, vfpc, Tree, Tree, Tree, Tree, Tree, grass, grass, Tree + shrub, Tree + shrub),
-#		  start  = list(Tree = Tree, grass = grass, shrub = shrub - Tree), trace = TRUE, algorithm = "port", 
-#		  lower = rep(0.0, 3), upper = rep(10, 3))
+mod3 <- function() {
+	fit = nls(vobs ~ makeFire(c(Tree, Tree, Tree, Tree, Tree, c3 + shrub, c4 + c3, Tree + shrub, Tree + shrub), vmod, vfpc),
+			  start  = list(Tree = Tree, c3 = grass - shrub, c4 = 0, shrub = shrub - Tree), trace = TRUE, algorithm = "port", 
+			  lower = rep(0.0, 4), upper = rep(10, 4))
 	
+	mod[mask] = predict(fit)
+	return(mod)
+}
 
-params = summary(fit)$coefficients
-pval = params[,4]
-params = params[,1]
-params[pval > 0.05] = veg_in[pval > 0.05]
-Tree = params[1]; grass = params[2]; shrub = params[3]
-
-
-lims0 = c(0.01, 0.02, 0.05, 0.10, 0.2, 0.4, 0.6, 0.8)
-cols0 = c("#EEEEEE", '#FF9900', '#990000', '#110000')
-
-dlims = c(-0.2, -0.1, -0.05, -0.02, -0.01, 0.01, 0.02, 0.05, 0.1, 0.2)
-dcols = c('#000011', '#000099', '#0099FF', '#EEEEEE', '#FF9900', '#990000', '#110000')
-
+mod = list(mod1(), mod2(), mod3())
 
 plotFun <- function(x, cols = cols0, limits = lims0) {
 	x[!mask] = NaN
@@ -125,16 +140,15 @@ plotDiff <- function(x) {
 	plotFun(x, cols = dcols, limits = dlims)
 }
 
-mod = sum(mod)
-mod[mask] = makeFire(c(Tree, Tree, Tree, Tree, Tree, grass, grass, shrub, shrub), vmod, vfpc)
-
-mat = t(matrix(1:8, nrow = 2))
-layout(mat, heights = c(1, 1, 1, 0.3))
+nmps = length(mod) + 4
+mat = 1:(2*(nmps))
+mat = t(matrix(mat, nrow = 2))
+layout(mat, heights = c(rep(1, nmps), 0.2))
 
 par(mar = rep(0, 4))
 plotFun(obs)
 plot.new()
-lapply(c(mod0/12, mod), plotDiff)
+lapply(c(mod0/12, mod0 * suppression / 12, mod), plotDiff)
 
-add_raster_legend2(cols0, lims0, dat = obs, add = FALSE, transpose = FALSE, plot_loc = c(0.22, 0.7, 0.8, 0.93))
-add_raster_legend2(dcols, dlims, dat = obs, add = FALSE, transpose = FALSE, plot_loc = c(0.22, 0.7, 0.8, 0.93))
+add_raster_legend2(cols0, lims0, dat = obs, add = FALSE, transpose = FALSE, plot_loc = c(0.2, 0.8, 0.8, 0.93))
+add_raster_legend2(dcols, dlims, dat = obs, add = FALSE, transpose = FALSE, plot_loc = c(0.2, 0.8, 0.8, 0.93))
