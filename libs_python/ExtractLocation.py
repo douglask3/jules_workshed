@@ -1,4 +1,5 @@
 import iris
+import numpy as np
 from   pdb               import set_trace as browser
 
 class ExtractLocation(object):
@@ -6,14 +7,17 @@ class ExtractLocation(object):
         self.lon = self.coordRange2List([west, east])
         self.lat = self.coordRange2List([south, north])
     
-        def lonRange(cell): return self.lon[0] <= cell <= self.lon[1]
+        def lonRange(cell):
+            celli = cell.point
+            if celli > 180: celli -= 360
+            return self.lon[0] <= celli <= self.lon[1]
         def latRange(cell): return self.lat[0] <= cell <= self.lat[1]
         
         if self.lon is not None:
-            try:
-                cubes = cubes.extract(iris.Constraint(longitude = lonRange))
-            except:
-                cubes = [cube.extract(iris.Constraint(longitude = lonRange)) for cube in cubes]
+            #try:
+            cubes = cubes.extract(iris.Constraint(longitude = lonRange))
+            #except:
+            #    cubes = [cube.extract(iris.Constraint(longitude = lonRange)) for cube in cubes]
         if self.lat is not None:      
             try:
                 cubes = cubes.extract(iris.Constraint(latitude  = latRange))
