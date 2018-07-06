@@ -128,16 +128,17 @@ mod3 <- function() {
 
 mod = list(mod1(), mod2(), mod3())
 
-plotFun <- function(x, cols = cols0, limits = lims0) {
+plotFun <- function(x, cols = cols0, limits = lims0, title = "") {
 	x[!mask] = NaN
 	plot_raster_from_raster(x * 12, limits = limits, cols = cols, add_legend = FALSE, y_range = c(-60, 90), quick = TRUE)
+	mtext(title, side = 1, adj = 0.6, line = -1.25, cex = 0.8)
 	grid('#000000FF')
 }
 
-plotDiff <- function(x) {
-	plotFun(x)
+plotDiff <- function(x, ...) {
+	plotFun(x, ...)
 	x = x - obs
-	plotFun(x, cols = dcols, limits = dlims)
+	plotFun(x, cols = dcols, limits = dlims, title = 'Diff')
 }
 
 nmps = length(mod) + 4
@@ -146,9 +147,9 @@ mat = t(matrix(mat, nrow = 2))
 layout(mat, heights = c(rep(1, nmps), 0.2))
 
 par(mar = rep(0, 4))
-plotFun(obs)
+plotFun(obs, title = 'GFED4s')
 plot.new()
-lapply(c(mod0/12, mod0 * suppression / 12, mod), plotDiff)
+mapply(plotDiff, c(mod0/12, mod0 * suppression / 12, mod), title = c('INFERNO', '+ fragmentation', '- tile opt. 1', '-tile opt. 2', '-tile opt. 3'))
 
 add_raster_legend2(cols0, lims0, dat = obs, add = FALSE, transpose = FALSE, plot_loc = c(0.2, 0.8, 0.8, 0.93))
 add_raster_legend2(dcols, dlims, dat = obs, add = FALSE, transpose = FALSE, plot_loc = c(0.2, 0.8, 0.8, 0.93))
