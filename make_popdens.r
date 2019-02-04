@@ -4,14 +4,15 @@
 ## required libs
 library(raster)
 library(ncdf4)
-library(gitBasedProjects)
+source("../gitProjectExtras/gitBasedProjects/R/sourceAllLibs.r")
+sourceAllLibs("../gitProjectExtras/gitBasedProjects/R/")
 setupProjectStructure()
 sourceAllLibs()
 
 ## File list
-inputs_dir = '../LimFIRE/data/hyde_land/'
+inputs_dir = '~/LimFIRE/data/hyde_land/'
 inputs_fid = 'popd_'
-outputs_eg = 'data/jules_eg_input/PD_2013.nc'
+outputs_eg = 'data/jules_eg_input/pop_den_2010_n96e.nc'
 outputs_fn = 'PD_HYDEv3.2_'
 
 ## Parameters
@@ -20,7 +21,6 @@ remove_mask = TRUE
 
 
 comment = list('data description' = 'HYDE3.2 regridded for JULES input.',
-			   'note of file structure and lat and lon' = "File based on previous JULES inputs. Note lat and lon are not quite right. See previous comments for source of file structure.",
                'data reference'   = 'Klein Goldewijk, K. , A. Beusen, M. de Vos and G. van Drecht (2011). The HYDE 3.1 spatially explicit database of human induced land use change over the past 12,000 years, Global Ecology and Biogeography20(1): 73-86. DOI: 10.1111/j.1466-8238.2010.00587.x.
                                      Klein Goldewijk, K. , A. Beusen, and P. Janssen (2010). Long term dynamic modeling of global population and built-up area in a spatially explicit way, HYDE 3 .1. The Holocene20(4):565-573. http://dx.doi.org/10.1177/0959683609356587',
                'data url'         = 'ftp://ftp.pbl.nl/hyde/hyde32/2017_beta_release/001/zip/',
@@ -49,7 +49,6 @@ input_years = strsplitbyN(input_files, 2, inputs_fid)
 input_years = as.numeric(strsplitbyN(input_years, 1, 'AD.asc'  ))
 c(input_years, index) := sort.int(input_years, index.return=TRUE)
 input_files = input_files[index]
-
 
 yr = years[1]
 
